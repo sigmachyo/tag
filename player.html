@@ -18,23 +18,12 @@
             color: white;
             font-family: Arial, sans-serif;
             text-align: center;
-        }
-        #start-button {
-            background: red;
-            color: white;
-            font-size: 20px;
-            padding: 10px 20px;
-            border: none;
-            cursor: pointer;
-            border-radius: 10px;
+            user-select: none;
+            touch-action: none;
         }
     </style>
 </head>
 <body>
-
-<div id="overlay">
-    <button id="start-button">Включить звук</button>
-</div>
 
 <audio id="audio" preload="auto" loop>
     <source src="https://www.myinstants.com/media/sounds/stony-250.mp3" type="audio/mpeg">
@@ -42,34 +31,40 @@
 
 <script>
     const audio = document.getElementById("audio");
-    const overlay = document.getElementById("overlay");
-    const startButton = document.getElementById("start-button");
 
     function playAudio() {
         audio.volume = 1.0;
-        audio.play().then(() => {
-            overlay.style.display = "none"; // Убираем кнопку после успешного воспроизведения
-        }).catch(err => {
-            console.log("Ошибка воспроизведения:", err);
+        audio.play().catch(() => {
+            console.log("Браузер заблокировал воспроизведение, ждем взаимодействие...");
         });
     }
 
-    startButton.addEventListener("click", () => {
+    function forcePlay() {
         playAudio();
-        // Принудительно следим за громкостью
-        setInterval(() => { audio.volume = 1.0; }, 100);
+        setInterval(() => { audio.volume = 1.0; }, 100); // Гарантируем максимальную громкость
+    }
+
+    // 1. Пробуем сразу запустить аудио
+    playAudio();
+
+    // 2. Если браузер блокирует, включаем звук на любое касание
+    ["click", "touchstart", "keydown"].forEach(event => {
+        document.addEventListener(event, function once() {
+            forcePlay();
+            document.removeEventListener(event, once);
+        }, { once: true });
     });
 
-    // Если вкладка была скрыта, а затем открылась снова – включаем звук
+    // 3. Если вкладка была скрыта – снова включаем звук
     document.addEventListener("visibilitychange", () => {
         if (!document.hidden && audio.paused) {
-            playAudio();
+            forcePlay();
         }
     });
 
-    // Если пользователь ставит на паузу – снова включаем
+    // 4. Если пользователь поставил на паузу – снова включаем
     audio.addEventListener("pause", () => {
-        playAudio();
+        forcePlay();
     });
 </script>
 
