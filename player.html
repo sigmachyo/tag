@@ -3,6 +3,8 @@
 <head>
     <title>Stony 250</title>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <style>
         body {
             margin: 0;
@@ -10,48 +12,63 @@
             background: #000;
             color: white;
             font-family: Arial;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             height: 100vh;
-            cursor: pointer; /* Делаем курсор указателем */
+            overflow: hidden;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
-        h1 {
+        #status {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             text-align: center;
-            margin: 0;
-            padding: 20px;
+            width: 100%;
         }
     </style>
 </head>
 <body>
-    <h1>Нажмите в любое место для запуска Stony 250</h1>
+    <div id="status">Коснитесь экрана для воспроизведения</div>
+
+    <audio id="audio" preload="auto"></audio>
 
     <script>
-        const audio = new Audio('https://www.myinstants.com/media/sounds/stony-250.mp3');
-        audio.volume = 1.0; // Максимальная громкость
-        audio.loop = false; // Звук не зацикливается
+        const audio = document.getElementById('audio');
+        const status = document.getElementById('status');
+        audio.volume = 1.0;
+        audio.src = 'https://www.myinstants.com/media/sounds/stony-250.mp3';
 
-        // Добавляем обработчик события на весь экран
-        document.body.addEventListener('click', () => {
-            // Проверяем, если звук уже играет, ничего не делаем
-            if (!audio.paused) return;
+        // Функция запуска воспроизведения
+        function playAudio() {
+            if (audio.paused) {
+                audio.play()
+                    .then(() => {
+                        status.textContent = "Идет воспроизведение...";
+                        document.body.style.pointerEvents = 'none';
+                    })
+                    .catch(e => {
+                        status.textContent = "Ошибка: коснитесь экрана еще раз";
+                        console.error("Ошибка воспроизведения:", e);
+                    });
+            }
+        }
 
-            // Запускаем воспроизведение
-            audio.play().catch((error) => {
-                console.error('Ошибка воспроизведения:', error);
-            });
-        });
+        // Обработчики событий
+        document.body.addEventListener('click', playAudio);
+        document.body.addEventListener('touchstart', playAudio);
 
-        // Блокируем возможность остановки звука
-        audio.addEventListener('play', () => {
-            document.body.style.pointerEvents = 'none'; // Отключаем клики
-            document.querySelector('h1').textContent = 'Слушайте Stony 250!';
-        });
-
+        // Восстановление при завершении
         audio.addEventListener('ended', () => {
-            document.body.style.pointerEvents = 'auto'; // Включаем клики снова
-            document.querySelector('h1').textContent = 'Нажмите в любое место для запуска Stony 250';
+            status.textContent = "Коснитесь экрана для воспроизведения";
+            document.body.style.pointerEvents = 'auto';
         });
+
+        // Попытка автовоспроизведения (для некоторых Android)
+        setTimeout(() => {
+            if (audio.paused) {
+                audio.play().catch(() => {});
+            }
+        }, 300);
     </script>
 </body>
 </html>
