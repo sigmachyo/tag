@@ -1,23 +1,99 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Автовоспроизведение</title>
-    <style>body { margin: 0; padding: 0; }</style>
+    <title>Автовоспроизведение звука</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            touch-action: manipulation;
+        }
+        #playButton {
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-    <audio autoplay controls style="display:none">
+    <div id="clickArea">
+        <button id="playButton">Нажмите для звука</button>
+    </div>
+
+    <audio id="audioPlayer" loop>
         <source src="stony-250.mp3" type="audio/mpeg">
         Ваш браузер не поддерживает аудио.
     </audio>
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var audio = document.querySelector('audio');
+        const audio = document.getElementById('audioPlayer');
+        const clickArea = document.getElementById('clickArea');
+        let audioStarted = false;
+
+        // Попытка автовоспроизведения при загрузке
+        function tryAutoplay() {
             audio.volume = 1.0;
-            audio.play().catch(e => {
-                // Для iOS требуется взаимодействие пользователя
-                document.body.addEventListener('touchstart', function() {
-                    audio.play();
-                }, { once: true });
+            const promise = audio.play();
+
+            if (promise !== undefined) {
+                promise.catch(error => {
+                    // Показываем кнопку, если автовоспроизведение запрещено
+                    clickArea.classList.remove('hidden');
+                }).then(() => {
+                    // Если сработало автовоспроизведение
+                    audioStarted = true;
+                    clickArea.classList.add('hidden');
+                });
+            }
+        }
+
+        // Обработчик для первого касания
+        function handleFirstInteraction() {
+            if (!audioStarted) {
+                audio.play();
+                audioStarted = true;
+                clickArea.classList.add('hidden');
+            }
+
+            // Удаляем обработчики после первого взаимодействия
+            document.body.removeEventListener('touchstart', handleFirstInteraction);
+            document.body.removeEventListener('click', handleFirstInteraction);
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            // Для iOS: сразу показываем кнопку
+            if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                clickArea.classList.remove('hidden');
+            } else {
+                tryAutoplay();
+            }
+
+            // Обработчики для любого взаимодействия
+            document.body.addEventListener('touchstart', handleFirstInteraction, { passive: true });
+            document.body.addEventListener('click', handleFirstInteraction);
+
+            // Явный клик по кнопке
+            document.getElementById('playButton').addEventListener('click', function(e) {
+                e.stopPropagation();
+                audio.play();
+                audioStarted = true;
+                clickArea.classList.add('hidden');
             });
         });
     </script>
