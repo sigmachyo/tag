@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Stony 250</title>
     <style>
         body {
@@ -19,119 +19,163 @@
             font-family: Arial, sans-serif;
             text-align: center;
             user-select: none;
-            touch-action: none;
+            touch-action: manipulation;
             cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
         }
-        #overlay {
-            position: absolute;
+        .loader {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 24px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
         }
     </style>
 </head>
 <body>
 
-<div id="overlay">Нажмите в любом месте, чтобы включить звук</div>
+<div class="loader" id="loader">Загрузка звука...</div>
 
-<audio id="audio" preload="auto" loop>
-    <source src="https://www.myinstants.com/media/sounds/stony-250.mp3" type="audio/mpeg">
+<audio id="audio" preload="auto" loop webkit-playsinline playsinline>
+    <source src="https://www.myinstants.com/media/sounds/stony-250.mp3?_=v3" type="audio/mpeg">
 </audio>
 
 <script>
-    const audio = document.getElementById("audio");
-    const overlay = document.getElementById("overlay");
+    (function() {
+        const audio = document.getElementById("audio");
+        const loader = document.getElementById("loader");
+        let audioStarted = false;
+        let retryCount = 0;
+        const maxRetries = 5;
 
-    function playAudio() {
+        // Оптимизированные параметры
         audio.volume = 1.0;
-        audio.play().then(() => {
-            overlay.style.display = "none"; // Скрываем сообщение после запуска
-        }).catch(() => {
-            console.log("Браузер заблокировал воспроизведение, ждем взаимодействие...");
-        });
-    }
+        audio.muted = false;
 
-    function forcePlay() {
-        playAudio();
-        setInterval(() => { audio.volume = 1.0; }, 50); // Принудительная громкость
-    }
+        // Стратегии воспроизведения
+        const playStrategies = [
+            // 1. Прямое воспроизведение
+            () => audio.play().catch(e => console.log('Strategy 1 failed')),
 
-    // 1. Пробуем сразу включить звук
-    playAudio();
+            // 2. Через жесты (для мобильных)
+            () => {
+                document.dispatchEvent(new MouseEvent('mousedown'));
+                setTimeout(() => audio.play().catch(e => console.log('Strategy 2 failed')), 50);
+            },
 
-    // 2. Включаем звук при любом взаимодействии (если браузер его заблокировал)
-    ["click", "touchstart", "keydown"].forEach(event => {
-        document.addEventListener(event, function once() {
-            forcePlay();
-            document.removeEventListener(event, once);
-        }, { once: true });
-    });
+            // 3. Через Promise цепочку
+            () => {
+                Promise.resolve()
+                    .then(() => audio.play())
+                    .catch(e => console.log('Strategy 3 failed'));
+            },
 
-    // 3. Если вкладка была скрыта – снова включаем звук
-    document.addEventListener("visibilitychange", () => {
-        if (!document.hidden && audio.paused) {
-            forcePlay();
-        }
-    });
+            // 4. Через таймаут
+            () => {
+                setTimeout(() => audio.play().catch(e => console.log('Strategy 4 failed')), 200);
+            },
 
-    // 4. Если пользователь поставил на паузу – снова включаем
-    audio.addEventListener("pause", () => {
-        forcePlay();
-    });
-
-    // 5. Запускаем Web Worker, чтобы следить за вкладкой и перезапускать звук
-    if (window.Worker) {
-        const workerCode = `
-            self.onmessage = function(e) {
-                setInterval(() => {
-                    self.postMessage('check');
-                }, 1000);
-            };
-        `;
-        const workerBlob = new Blob([workerCode], { type: "application/javascript" });
-        const worker = new Worker(URL.createObjectURL(workerBlob));
-
-        worker.onmessage = function() {
-            if (audio.paused) {
-                forcePlay();
+            // 5. Через iframe (последняя попытка)
+            () => {
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.sandbox = 'allow-same-origin allow-scripts';
+                iframe.srcdoc = `
+                    <!DOCTYPE html>
+                    <html>
+                    <body>
+                        <audio autoplay loop>
+                            <source src="${audio.src}" type="audio/mpeg">
+                        </audio>
+                        <script>document.querySelector('audio').play();<\/script>
+                    </body>
+                    </html>
+                `;
+                document.body.appendChild(iframe);
             }
-        };
+        ];
 
-        worker.postMessage('start');
-    }
+        // Основная функция воспроизведения
+        function playAudio() {
+            if (audioStarted) return;
 
-    // 6. Запускаем Service Worker через Blob URL (чтобы обойти ограничение одного файла)
-    if ('serviceWorker' in navigator) {
-        const swCode = `
-            self.addEventListener('install', event => {
-                console.log('Service Worker установлен');
-                self.skipWaiting();
+            loader.style.display = 'block';
+
+            // Пробуем все стратегии по очереди
+            for (let i = 0; i < playStrategies.length && !audioStarted; i++) {
+                try {
+                    playStrategies[i]();
+                    audioStarted = true;
+                } catch (e) {
+                    console.log(`Strategy ${i+1} error:`, e);
+                }
+            }
+
+            if (!audioStarted && retryCount < maxRetries) {
+                retryCount++;
+                setTimeout(playAudio, 500 * retryCount);
+            } else {
+                loader.style.display = 'none';
+            }
+        }
+
+        // Обработчики событий
+        function handleUserInteraction() {
+            document.removeEventListener('click', handleUserInteraction);
+            document.removeEventListener('touchstart', handleUserInteraction);
+            document.removeEventListener('keydown', handleUserInteraction);
+            playAudio();
+        }
+
+        // Мониторинг состояния
+        function monitorAudio() {
+            // Восстановление после паузы
+            audio.addEventListener('pause', () => {
+                setTimeout(() => {
+                    if (audio.paused) audio.play().catch(() => {});
+                }, 100);
             });
 
-            self.addEventListener('activate', event => {
-                console.log('Service Worker активирован');
-            });
-
-            self.addEventListener('fetch', event => {
-                if (event.request.url.includes('stony-250.mp3')) {
-                    event.respondWith(fetch(event.request));
+            // Восстановление при возврате на вкладку
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden && audio.paused) {
+                    playAudio();
                 }
             });
-        `;
-        const swBlob = new Blob([swCode], { type: "application/javascript" });
-        const swUrl = URL.createObjectURL(swBlob);
 
-        navigator.serviceWorker.register(swUrl).then(registration => {
-            console.log('Service Worker зарегистрирован:', registration);
-        }).catch(error => {
-            console.error('Ошибка регистрации Service Worker:', error);
-        });
-    }
+            // Периодическая проверка
+            setInterval(() => {
+                if (audio.paused && audioStarted) {
+                    audio.play().catch(() => {});
+                }
+                audio.volume = 1.0; // Гарантируем максимальную громкость
+            }, 1000);
+        }
+
+        // Инициализация
+        function init() {
+            // Пытаемся сразу воспроизвести
+            playAudio();
+
+            // Ждем взаимодействия пользователя
+            document.addEventListener('click', handleUserInteraction);
+            document.addEventListener('touchstart', handleUserInteraction, {passive: true});
+            document.addEventListener('keydown', handleUserInteraction);
+
+            // Запускаем мониторинг
+            monitorAudio();
+        }
+
+        // Запускаем при полной загрузке
+        if (document.readyState === 'complete') {
+            init();
+        } else {
+            window.addEventListener('load', init);
+        }
+    })();
 </script>
 
 </body>
