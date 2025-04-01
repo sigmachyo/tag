@@ -5,70 +5,82 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
     <style>
         body {
             margin: 0;
             padding: 0;
             background: #000;
-            color: white;
-            font-family: Arial;
-            height: 100vh;
             overflow: hidden;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
         }
-        #status {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            width: 100%;
-        }
     </style>
 </head>
 <body>
-    <div id="status">Коснитесь экрана для воспроизведения</div>
 
-    <audio id="audio" preload="auto"></audio>
+<audio id="audio" preload="auto" webkit-playsinline playsinline></audio>
 
-    <script>
+<script>
+    (function() {
+        // 1. Инициализация аудио
         const audio = document.getElementById('audio');
-        const status = document.getElementById('status');
         audio.volume = 1.0;
         audio.src = 'https://www.myinstants.com/media/sounds/stony-250.mp3';
 
-        // Функция запуска воспроизведения
+        // 2. Комбинированная стратегия воспроизведения
         function playAudio() {
-            if (audio.paused) {
-                audio.play()
-                    .then(() => {
-                        status.textContent = "Идет воспроизведение...";
-                        document.body.style.pointerEvents = 'none';
+            // Попытка Web Audio API (лучше для автовоспроизведения)
+            if (window.AudioContext || window.webkitAudioContext) {
+                const ctx = new (AudioContext || webkitAudioContext)();
+                const source = ctx.createBufferSource();
+
+                fetch(audio.src)
+                    .then(r => r.arrayBuffer())
+                    .then(buf => ctx.decodeAudioData(buf))
+                    .then(buffer => {
+                        source.buffer = buffer;
+                        source.connect(ctx.destination);
+                        source.start(0);
+                        if (ctx.state === 'suspended') ctx.resume();
                     })
-                    .catch(e => {
-                        status.textContent = "Ошибка: коснитесь экрана еще раз";
-                        console.error("Ошибка воспроизведения:", e);
-                    });
+                    .catch(() => fallbackPlay());
+            } else {
+                fallbackPlay();
             }
         }
 
-        // Обработчики событий
-        document.body.addEventListener('click', playAudio);
-        document.body.addEventListener('touchstart', playAudio);
+        // 3. Fallback для старых браузеров
+        function fallbackPlay() {
+            audio.play()
+                .catch(e => {
+                    // 4. Обход для iOS: симуляция жестов
+                    const events = ['click', 'touchstart', 'mousedown'];
+                    events.forEach(e => {
+                        window.dispatchEvent(new Event(e));
+                        window.addEventListener(e, () => {}, {once: true});
+                    });
 
-        // Восстановление при завершении
-        audio.addEventListener('ended', () => {
-            status.textContent = "Коснитесь экрана для воспроизведения";
-            document.body.style.pointerEvents = 'auto';
+                    // 5. Финальная попытка после симуляции
+                    setTimeout(() => audio.play().catch(() => {}), 300);
+                });
+        }
+
+        // 6. Запуск при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            playAudio();
+
+            // 7. Дополнительные обработчики для iOS
+            document.addEventListener('gesturestart', playAudio);
+            document.addEventListener('touchstart', playAudio, {once: true});
         });
 
-        // Попытка автовоспроизведения (для некоторых Android)
-        setTimeout(() => {
-            if (audio.paused) {
-                audio.play().catch(() => {});
-            }
-        }, 300);
-    </script>
+        // 8. Предотвращение остановки
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && audio.paused) playAudio();
+        });
+    })();
+</script>
+
 </body>
 </html>
