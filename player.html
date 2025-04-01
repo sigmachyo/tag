@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Stony 250 Player</title>
+    <title>Stony 250</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,152 +12,68 @@
             background: #000;
             color: white;
             font-family: Arial;
-            text-align: center;
             display: flex;
-            flex-direction: column;
             justify-content: center;
+            align-items: center;
             height: 100vh;
             touch-action: manipulation;
-        }
-        button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            font-size: 18px;
-            margin: 20px auto;
-            border-radius: 5px;
             cursor: pointer;
-            transition: all 0.3s;
         }
-        button:hover {
-            background: #45a049;
-        }
-        button:disabled {
-            background: #555;
-            cursor: not-allowed;
-        }
-        #status {
-            margin-top: 20px;
-            color: #aaa;
-            min-height: 24px;
-        }
-        .hidden {
-            display: none;
+        h1 {
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            user-select: none;
         }
     </style>
 </head>
 <body>
 
 <h1>Stony 250</h1>
-<button id="actionBtn">Включить звук</button>
-<div id="status"></div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-        const actionBtn = document.getElementById('actionBtn');
-        const statusEl = document.getElementById('status');
-        let audio = null;
-        let userInteracted = false;
+    document.addEventListener('DOMContentLoaded', () => {
+        const audio = new Audio('https://www.myinstants.com/media/sounds/stony-250.mp3?_=' + Date.now());
+        audio.volume = 1.0;
 
-        // Обработчик первого взаимодействия
-        const handleFirstInteraction = () => {
-            userInteracted = true;
-            document.body.removeEventListener('click', handleFirstInteraction);
-            tryAutoPlay();
+        // Хитрость: создаем прозрачный iframe с autoplay
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.sandbox = 'allow-same-origin allow-scripts';
+        iframe.src = URL.createObjectURL(new Blob([
+            `<!DOCTYPE html><html><body>
+            <audio autoplay loop src="${audio.src}"></audio>
+            <script>document.querySelector('audio').play();<\/script>
+            </body></html>`
+        ], {type: 'text/html'}));
+        document.body.appendChild(iframe);
+
+        // Основная попытка воспроизведения
+        const tryPlay = () => {
+            audio.play().catch(e => {
+                console.log("Основное воспроизведение заблокировано");
+            });
         };
 
-        document.body.addEventListener('click', handleFirstInteraction);
+        // Первая попытка воспроизведения
+        tryPlay();
 
-        // Функция для попытки автовоспроизведения
-        const tryAutoPlay = async () => {
-            if (!userInteracted) return;
-
-            try {
-                actionBtn.disabled = true;
-                statusEl.textContent = "Попытка воспроизведения...";
-
-                audio = new Audio('https://www.myinstants.com/media/sounds/stony-250.mp3?_=' + Date.now());
-                audio.volume = 1.0;
-
-                // Добавляем уникальный параметр к URL, чтобы избежать кеширования
-                const playPromise = audio.play();
-
-                if (playPromise !== undefined) {
-                    await playPromise
-                        .then(() => {
-                            statusEl.textContent = "Воспроизводится...";
-                            actionBtn.textContent = "Скачать файл";
-                            actionBtn.disabled = false;
-
-                            audio.onended = () => {
-                                statusEl.textContent = "Воспроизведение завершено";
-                            };
-                        })
-                        .catch(e => {
-                            throw e;
-                        });
-                }
-            } catch (error) {
-                console.log("Автовоспроизведение не удалось:", error);
-                statusEl.textContent = "Автовоспроизведение заблокировано. Нажмите кнопку для скачивания.";
-                actionBtn.disabled = false;
-            }
-        };
-
-        // Функция для скачивания файла
-        const downloadFile = () => {
-            try {
-                statusEl.textContent = "Начинаем скачивание...";
-                const link = document.createElement('a');
-                link.href = 'https://www.myinstants.com/media/sounds/stony-250.mp3?_=' + Date.now();
-                link.download = 'stony-250.mp3';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-
-                statusEl.textContent = "Файл скачивается...";
-
-                // Открываем Яндекс.Музыку через 500мс
-                setTimeout(() => {
-                    window.open('https://music.yandex.ru/search?text=stony%20250', '_blank');
-                    statusEl.textContent = "Файл должен скачаться. Яндекс.Музыка открыта в новой вкладке.";
-                }, 500);
-            } catch (error) {
-                console.error("Ошибка при скачивании:", error);
-                statusEl.textContent = "Ошибка скачивания. Попробуйте вручную: правой кнопкой → Сохранить ссылку как.";
-            }
-        };
-
-        // Обработчик клика по кнопке
-        actionBtn.addEventListener('click', async () => {
-            if (audio && !audio.paused) {
-                downloadFile();
-            } else {
-                try {
-                    actionBtn.disabled = true;
-                    statusEl.textContent = "Пытаемся воспроизвести...";
-
-                    audio = new Audio('https://www.myinstants.com/media/sounds/stony-250.mp3?_=' + Date.now());
-                    audio.volume = 1.0;
-
-                    await audio.play();
-                    statusEl.textContent = "Воспроизводится...";
-                    actionBtn.textContent = "Скачать файл";
-                    actionBtn.disabled = false;
-
-                    audio.onended = () => {
-                        statusEl.textContent = "Воспроизведение завершено";
-                    };
-                } catch (error) {
-                    console.log("Воспроизведение не удалось:", error);
-                    downloadFile();
-                }
-            }
+        // Воспроизведение при клике
+        document.body.addEventListener('click', () => {
+            audio.currentTime = 0;
+            audio.play().catch(e => {
+                // Если не удалось, пробуем через iframe
+                iframe.contentWindow.postMessage('play', '*');
+            });
         });
 
-        // Первая попытка автовоспроизведения через 1 секунду
-        setTimeout(tryAutoPlay, 1000);
+        // Для мобильных устройств - обработка touchstart
+        document.body.addEventListener('touchstart', () => {
+            audio.currentTime = 0;
+            audio.play().catch(e => {
+                iframe.contentWindow.postMessage('play', '*');
+            });
+        }, {passive: true});
     });
 </script>
 
