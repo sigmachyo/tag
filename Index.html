@@ -1,9 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Play Sound</title>
-    <meta http-equiv="refresh" content="0; url=stony-250.mp3" />
+    <title>Автовоспроизведение</title>
+    <style>body { margin: 0; padding: 0; }</style>
 </head>
 <body>
+    <audio autoplay controls style="display:none">
+        <source src="stony-250.mp3" type="audio/mpeg">
+        Ваш браузер не поддерживает аудио.
+    </audio>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var audio = document.querySelector('audio');
+            audio.volume = 1.0;
+            audio.play().catch(e => {
+                // Для iOS требуется взаимодействие пользователя
+                document.body.addEventListener('touchstart', function() {
+                    audio.play();
+                }, { once: true });
+            });
+        });
+    </script>
 </body>
 </html>
