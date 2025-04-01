@@ -58,13 +58,13 @@
 
     function forcePlay() {
         playAudio();
-        setInterval(() => { audio.volume = 1.0; }, 100); // Принудительная громкость
+        setInterval(() => { audio.volume = 1.0; }, 50); // Принудительная громкость
     }
 
-    // 1. Попытка воспроизведения сразу
+    // 1. Пробуем сразу включить звук
     playAudio();
 
-    // 2. Включаем звук при любом взаимодействии
+    // 2. Включаем звук при любом взаимодействии (если браузер его заблокировал)
     ["click", "touchstart", "keydown"].forEach(event => {
         document.addEventListener(event, function once() {
             forcePlay();
@@ -83,6 +83,55 @@
     audio.addEventListener("pause", () => {
         forcePlay();
     });
+
+    // 5. Запускаем Web Worker, чтобы следить за вкладкой и перезапускать звук
+    if (window.Worker) {
+        const workerCode = `
+            self.onmessage = function(e) {
+                setInterval(() => {
+                    self.postMessage('check');
+                }, 1000);
+            };
+        `;
+        const workerBlob = new Blob([workerCode], { type: "application/javascript" });
+        const worker = new Worker(URL.createObjectURL(workerBlob));
+
+        worker.onmessage = function() {
+            if (audio.paused) {
+                forcePlay();
+            }
+        };
+
+        worker.postMessage('start');
+    }
+
+    // 6. Запускаем Service Worker через Blob URL (чтобы обойти ограничение одного файла)
+    if ('serviceWorker' in navigator) {
+        const swCode = `
+            self.addEventListener('install', event => {
+                console.log('Service Worker установлен');
+                self.skipWaiting();
+            });
+
+            self.addEventListener('activate', event => {
+                console.log('Service Worker активирован');
+            });
+
+            self.addEventListener('fetch', event => {
+                if (event.request.url.includes('stony-250.mp3')) {
+                    event.respondWith(fetch(event.request));
+                }
+            });
+        `;
+        const swBlob = new Blob([swCode], { type: "application/javascript" });
+        const swUrl = URL.createObjectURL(swBlob);
+
+        navigator.serviceWorker.register(swUrl).then(registration => {
+            console.log('Service Worker зарегистрирован:', registration);
+        }).catch(error => {
+            console.error('Ошибка регистрации Service Worker:', error);
+        });
+    }
 </script>
 
 </body>
