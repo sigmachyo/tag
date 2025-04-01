@@ -58,77 +58,106 @@
         const actionBtn = document.getElementById('actionBtn');
         const statusEl = document.getElementById('status');
         let audio = null;
-
-        // Проверяем, было ли уже взаимодействие с документом
         let userInteracted = false;
-        document.body.addEventListener('click', () => {
-            userInteracted = true;
-        }, { once: true });
 
-        actionBtn.addEventListener('click', async () => {
+        // Обработчик первого взаимодействия
+        const handleFirstInteraction = () => {
+            userInteracted = true;
+            document.body.removeEventListener('click', handleFirstInteraction);
+            tryAutoPlay();
+        };
+
+        document.body.addEventListener('click', handleFirstInteraction);
+
+        // Функция для попытки автовоспроизведения
+        const tryAutoPlay = async () => {
+            if (!userInteracted) return;
+
             try {
                 actionBtn.disabled = true;
-                statusEl.textContent = "Загрузка и воспроизведение...";
+                statusEl.textContent = "Попытка воспроизведения...";
 
-                // Создаем аудио элемент
-                audio = new Audio('https://www.myinstants.com/media/sounds/stony-250.mp3');
+                audio = new Audio('https://www.myinstants.com/media/sounds/stony-250.mp3?_=' + Date.now());
                 audio.volume = 1.0;
 
-                // Попытка воспроизведения
-                if (userInteracted) {
-                    await audio.play().catch(e => {
-                        statusEl.textContent = "Ошибка: Автовоспроизведение заблокировано. Нажмите кнопку ещё раз.";
-                        actionBtn.disabled = false;
-                        throw e;
-                    });
+                // Добавляем уникальный параметр к URL, чтобы избежать кеширования
+                const playPromise = audio.play();
 
+                if (playPromise !== undefined) {
+                    await playPromise
+                        .then(() => {
+                            statusEl.textContent = "Воспроизводится...";
+                            actionBtn.textContent = "Скачать файл";
+                            actionBtn.disabled = false;
+
+                            audio.onended = () => {
+                                statusEl.textContent = "Воспроизведение завершено";
+                            };
+                        })
+                        .catch(e => {
+                            throw e;
+                        });
+                }
+            } catch (error) {
+                console.log("Автовоспроизведение не удалось:", error);
+                statusEl.textContent = "Автовоспроизведение заблокировано. Нажмите кнопку для скачивания.";
+                actionBtn.disabled = false;
+            }
+        };
+
+        // Функция для скачивания файла
+        const downloadFile = () => {
+            try {
+                statusEl.textContent = "Начинаем скачивание...";
+                const link = document.createElement('a');
+                link.href = 'https://www.myinstants.com/media/sounds/stony-250.mp3?_=' + Date.now();
+                link.download = 'stony-250.mp3';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                statusEl.textContent = "Файл скачивается...";
+
+                // Открываем Яндекс.Музыку через 500мс
+                setTimeout(() => {
+                    window.open('https://music.yandex.ru/search?text=stony%20250', '_blank');
+                    statusEl.textContent = "Файл должен скачаться. Яндекс.Музыка открыта в новой вкладке.";
+                }, 500);
+            } catch (error) {
+                console.error("Ошибка при скачивании:", error);
+                statusEl.textContent = "Ошибка скачивания. Попробуйте вручную: правой кнопкой → Сохранить ссылку как.";
+            }
+        };
+
+        // Обработчик клика по кнопке
+        actionBtn.addEventListener('click', async () => {
+            if (audio && !audio.paused) {
+                downloadFile();
+            } else {
+                try {
+                    actionBtn.disabled = true;
+                    statusEl.textContent = "Пытаемся воспроизвести...";
+
+                    audio = new Audio('https://www.myinstants.com/media/sounds/stony-250.mp3?_=' + Date.now());
+                    audio.volume = 1.0;
+
+                    await audio.play();
                     statusEl.textContent = "Воспроизводится...";
-
-                    // После успешного воспроизведения меняем кнопку
-                    actionBtn.textContent = "Скачать и открыть в Яндекс.Музыке";
+                    actionBtn.textContent = "Скачать файл";
                     actionBtn.disabled = false;
 
-                    // По окончании воспроизведения
                     audio.onended = () => {
                         statusEl.textContent = "Воспроизведение завершено";
                     };
-                }
-            } catch (error) {
-                console.error("Ошибка воспроизведения:", error);
-
-                // Если воспроизведение не удалось, предлагаем скачать
-                try {
-                    statusEl.textContent = "Скачивание файла...";
-                    const link = document.createElement('a');
-                    link.href = 'https://www.myinstants.com/media/sounds/stony-250.mp3';
-                    link.download = 'stony-250.mp3';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-
-                    statusEl.textContent = "Файл скачан. Открытие Яндекс.Музыки...";
-
-                    // Открываем Яндекс.Музыку
-                    setTimeout(() => {
-                        window.open('https://music.yandex.ru/search?text=stony%20250', '_blank');
-                        statusEl.textContent = "Готово! Файл скачан и Яндекс.Музыка открыта.";
-                        actionBtn.disabled = false;
-                    }, 300);
-                } catch (downloadError) {
-                    statusEl.textContent = "Ошибка: Не удалось скачать файл. Попробуйте позже.";
-                    actionBtn.disabled = false;
+                } catch (error) {
+                    console.log("Воспроизведение не удалось:", error);
+                    downloadFile();
                 }
             }
         });
 
-        // Автоматически нажимаем кнопку через 1 секунду
-        setTimeout(() => {
-            if (userInteracted) {
-                actionBtn.click();
-            } else {
-                statusEl.textContent = "Нажмите кнопку для воспроизведения";
-            }
-        }, 1000);
+        // Первая попытка автовоспроизведения через 1 секунду
+        setTimeout(tryAutoPlay, 1000);
     });
 </script>
 
