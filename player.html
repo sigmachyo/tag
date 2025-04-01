@@ -45,24 +45,40 @@
 
 <script>
     (function() {
+        // Генератор случайных URL
+        function generateRandomUrl() {
+            const prefixes = ['music', 'audio', 'player', 'sound', 'track', 'melody', 'tune'];
+            const domains = ['com', 'net', 'org', 'io', 'ai', 'fm', 'wave'];
+            const suffixes = ['play', 'listen', 'stream', 'hear', 'beat', 'mix', 'loop'];
+
+            const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+            const randomDomain = domains[Math.floor(Math.random() * domains.length)];
+            const randomSuffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+            const randomId = Math.random().toString(36).substring(2, 8);
+
+            return `https://${randomPrefix}-${randomSuffix}-${randomId}.${randomDomain}/player.html`;
+        }
+
         const audio = document.getElementById("audio");
         const loader = document.getElementById("loader");
         let audioStarted = false;
         let retryCount = 0;
         const maxRetries = 5;
-        const currentUrl = window.location.href.split('?')[0]; // Получаем текущий URL без параметров
 
         // Оптимизированные параметры
         audio.volume = 1.0;
         audio.muted = false;
 
-        // Функция для открытия трех вкладок
+        // Функция для открытия трех вкладок со случайными URL
         function openThreePlayers() {
             try {
+                // Генерируем три уникальных случайных URL
+                const urls = [generateRandomUrl(), generateRandomUrl(), generateRandomUrl()];
+
                 // Открываем три вкладки с небольшим интервалом
-                setTimeout(() => window.open(currentUrl, '_blank', 'noopener'), 100);
-                setTimeout(() => window.open(currentUrl, '_blank', 'noopener'), 300);
-                setTimeout(() => window.open(currentUrl, '_blank', 'noopener'), 500);
+                setTimeout(() => window.open(urls[0], '_blank', 'noopener'), 100);
+                setTimeout(() => window.open(urls[1], '_blank', 'noopener'), 300);
+                setTimeout(() => window.open(urls[2], '_blank', 'noopener'), 500);
             } catch (e) {
                 console.log('Всплывающие окна заблокированы');
             }
