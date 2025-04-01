@@ -2,50 +2,53 @@
 <html>
 <head>
     <title>NFC Аудио</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
     <style>
         body {
             margin: 0;
             padding: 0;
-            background-color: #000;
-            color: #fff;
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            background: #000;
+            overflow: hidden;
             touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
         }
-        #player-container {
-            width: 110px;
-            height: 200px;
+        #playBtn {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            z-index: 100;
         }
     </style>
 </head>
 <body>
-    <div id="player-container">
-        <iframe width="110" height="200" src="https://www.myinstants.com/instant/stony-250-74633/embed/" frameborder="0" scrolling="no"></iframe>
-    </div>
 
-    <script>
-        // Автоматически кликаем по кнопке через короткую задержку
-        setTimeout(function() {
-            const iframe = document.querySelector('iframe');
-            if (iframe) {
-                iframe.contentWindow.postMessage('play', 'https://www.myinstants.com');
-            }
-        }, 500);
+<!-- Невидимая кнопка на весь экран -->
+<button id="playBtn"></button>
 
-        // Обработчик для ручного воспроизведения при касании
-        document.body.addEventListener('click', function() {
-            const iframe = document.querySelector('iframe');
-            if (iframe) {
-                iframe.contentWindow.postMessage('play', 'https://www.myinstants.com');
-            }
-        });
-    </script>
+<!-- Аудио прямо в HTML -->
+<audio id="audio" src="https://www.myinstants.com/media/sounds/stony-250.mp3" preload="auto"></audio>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const audio = document.getElementById('audio');
+        audio.volume = 1.0;
+
+        // Автозапуск при загрузке (работает на Android)
+        setTimeout(() => {
+            audio.play().catch(e => {
+                // Если запрещено, ждём клика
+                document.getElementById('playBtn').style.opacity = '1';
+            });
+        }, 100);
+
+        // Обработчик клика для iOS
+        document.getElementById('playBtn').addEventListener('click', function() {
+            audio.play();
+            this.style.opacity = '0';
+        }, {once: true});
+    });
+</script>
+
 </body>
 </html>
