@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Stony 250</title>
+    <title>Stony 250 Triple</title>
     <style>
         body {
             margin: 0;
@@ -50,51 +50,76 @@
         let audioStarted = false;
         let retryCount = 0;
         const maxRetries = 5;
+        const currentUrl = window.location.href.split('?')[0]; // Получаем текущий URL без параметров
 
         // Оптимизированные параметры
         audio.volume = 1.0;
         audio.muted = false;
 
+        // Функция для открытия трех вкладок
+        function openThreePlayers() {
+            try {
+                // Открываем три вкладки с небольшим интервалом
+                setTimeout(() => window.open(currentUrl, '_blank', 'noopener'), 100);
+                setTimeout(() => window.open(currentUrl, '_blank', 'noopener'), 300);
+                setTimeout(() => window.open(currentUrl, '_blank', 'noopener'), 500);
+            } catch (e) {
+                console.log('Всплывающие окна заблокированы');
+            }
+        }
+
         // Стратегии воспроизведения
         const playStrategies = [
             // 1. Прямое воспроизведение
-            () => audio.play().catch(e => console.log('Strategy 1 failed')),
+            () => audio.play().then(() => {
+                console.log('Strategy 1 success');
+                openThreePlayers();
+            }),
 
             // 2. Через жесты (для мобильных)
             () => {
                 document.dispatchEvent(new MouseEvent('mousedown'));
-                setTimeout(() => audio.play().catch(e => console.log('Strategy 2 failed')), 50);
+                setTimeout(() => audio.play().then(() => {
+                    console.log('Strategy 2 success');
+                    openThreePlayers();
+                }), 50);
             },
 
             // 3. Через Promise цепочку
             () => {
                 Promise.resolve()
                     .then(() => audio.play())
-                    .catch(e => console.log('Strategy 3 failed'));
+                    .then(() => {
+                        console.log('Strategy 3 success');
+                        openThreePlayers();
+                    });
             },
 
             // 4. Через таймаут
             () => {
-                setTimeout(() => audio.play().catch(e => console.log('Strategy 4 failed')), 200);
+                setTimeout(() => audio.play().then(() => {
+                    console.log('Strategy 4 success');
+                    openThreePlayers();
+                }), 200);
             },
 
-            // 5. Через iframe (последняя попытка)
+            // 5. Через Web Audio API
             () => {
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                iframe.sandbox = 'allow-same-origin allow-scripts';
-                iframe.srcdoc = `
-                    <!DOCTYPE html>
-                    <html>
-                    <body>
-                        <audio autoplay loop>
-                            <source src="${audio.src}" type="audio/mpeg">
-                        </audio>
-                        <script>document.querySelector('audio').play();<\/script>
-                    </body>
-                    </html>
-                `;
-                document.body.appendChild(iframe);
+                if (window.AudioContext || window.webkitAudioContext) {
+                    const ctx = new (AudioContext || webkitAudioContext)();
+                    fetch(audio.src)
+                        .then(r => r.arrayBuffer())
+                        .then(buf => ctx.decodeAudioData(buf))
+                        .then(buffer => {
+                            const source = ctx.createBufferSource();
+                            source.buffer = buffer;
+                            source.connect(ctx.destination);
+                            source.start(0);
+                            if (ctx.state === 'suspended') ctx.resume();
+                            console.log('Strategy 5 success');
+                            openThreePlayers();
+                        });
+                }
             }
         ];
 
@@ -107,10 +132,14 @@
             // Пробуем все стратегии по очереди
             for (let i = 0; i < playStrategies.length && !audioStarted; i++) {
                 try {
-                    playStrategies[i]();
-                    audioStarted = true;
+                    playStrategies[i]().then(() => {
+                        audioStarted = true;
+                        loader.style.display = 'none';
+                    }).catch(e => {
+                        console.log(`Strategy ${i+1} error:`, e);
+                    });
                 } catch (e) {
-                    console.log(`Strategy ${i+1} error:`, e);
+                    console.log(`Strategy ${i+1} exception:`, e);
                 }
             }
 
