@@ -10,38 +10,53 @@
             margin: 0;
             padding: 0;
             background: #000;
-            overflow: hidden;
+            color: white;
+            font-family: Arial;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100vh;
             touch-action: manipulation;
         }
-        #downloadLink {
-            display: none;
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            margin: 20px auto;
+            border-radius: 5px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-<!-- Ссылка для автоматической загрузки -->
-<a id="downloadLink" href="https://www.myinstants.com/media/sounds/stony-250.mp3" download="stony-250.mp3"></a>
+<h1>Stony 250</h1>
+<button id="actionBtn">Включить звук</button>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const link = document.getElementById('downloadLink');
-
-        // 1. Попытка автоматической загрузки и воспроизведения
+    document.getElementById('actionBtn').addEventListener('click', function() {
+        // 1. Скачивание файла
+        const link = document.createElement('a');
+        link.href = 'https://www.myinstants.com/media/sounds/stony-250.mp3';
+        link.download = 'stony-250.mp3';
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
 
-        // 2. Открытие в новом окне для Яндекс.Музыки
-        setTimeout(() => {
-            window.open('https://music.yandex.ru/search?text=stony%20250', '_blank');
-        }, 500);
-
-        // 3. Альтернативный вариант через аудиоплеер
+        // 2. Попытка воспроизведения
         const audio = new Audio('https://www.myinstants.com/media/sounds/stony-250.mp3');
         audio.volume = 1.0;
         audio.play().catch(e => {
-            // Если воспроизведение запрещено - показываем инструкцию
-            document.body.innerHTML = '<h1 style="color:white;text-align:center;">Нажмите на скачанный файл stony-250.mp3</h1>';
+            alert('Нажмите на скачанный файл для прослушивания');
         });
+
+        // 3. Открытие в Яндекс.Музыке (по желанию)
+        setTimeout(() => {
+            window.open('https://music.yandex.ru/search?text=stony%20250', '_blank');
+        }, 300);
     });
 </script>
 
