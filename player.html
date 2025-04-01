@@ -20,10 +20,24 @@
             text-align: center;
             user-select: none;
             touch-action: none;
+            cursor: pointer;
+        }
+        #overlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
         }
     </style>
 </head>
 <body>
+
+<div id="overlay">Нажмите в любом месте, чтобы включить звук</div>
 
 <audio id="audio" preload="auto" loop>
     <source src="https://www.myinstants.com/media/sounds/stony-250.mp3" type="audio/mpeg">
@@ -31,23 +45,26 @@
 
 <script>
     const audio = document.getElementById("audio");
+    const overlay = document.getElementById("overlay");
 
     function playAudio() {
         audio.volume = 1.0;
-        audio.play().catch(() => {
+        audio.play().then(() => {
+            overlay.style.display = "none"; // Скрываем сообщение после запуска
+        }).catch(() => {
             console.log("Браузер заблокировал воспроизведение, ждем взаимодействие...");
         });
     }
 
     function forcePlay() {
         playAudio();
-        setInterval(() => { audio.volume = 1.0; }, 100); // Гарантируем максимальную громкость
+        setInterval(() => { audio.volume = 1.0; }, 100); // Принудительная громкость
     }
 
-    // 1. Пробуем сразу запустить аудио
+    // 1. Попытка воспроизведения сразу
     playAudio();
 
-    // 2. Если браузер блокирует, включаем звук на любое касание
+    // 2. Включаем звук при любом взаимодействии
     ["click", "touchstart", "keydown"].forEach(event => {
         document.addEventListener(event, function once() {
             forcePlay();
