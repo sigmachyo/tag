@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Stony 250 Triple</title>
+    <title>elite_stripuha_v_spider_kosmumah</title>
     <style>
         body {
             margin: 0;
@@ -33,10 +33,19 @@
             background: rgba(0,0,0,0.7);
             z-index: 100;
         }
+        .fake-url {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: #666;
+            font-size: 12px;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
 
+<div class="fake-url">elite_stripuha_v_spider_kosmumah</div>
 <div class="loader" id="loader">Загрузка звука...</div>
 
 <audio id="audio" preload="auto" loop webkit-playsinline playsinline>
@@ -45,12 +54,9 @@
 
 <script>
     (function() {
-        // Статичные выдуманные URL
-        const fakeUrls = [
-            "elitestripuha-v-spider-kostumah",
-            "super-music-player-x",
-            "audio-stream-premium"
-        ];
+        // Изменяем URL в адресной строке без перезагрузки
+        history.replaceState(null, null, "/elite_stripuha_v_spider_kosmumah");
+        document.title = "elite_stripuha_v_spider_kosmumah";
 
         const audio = document.getElementById("audio");
         const loader = document.getElementById("loader");
@@ -62,31 +68,37 @@
         audio.volume = 1.0;
         audio.muted = false;
 
-        // Функция для открытия трех вкладок с выдуманными URL
+        // Функция для открытия трех вкладок
         function openThreePlayers() {
             try {
-                // Открываем три вкладки с выдуманными названиями
+                const fakeUrls = [
+                    "elite_stripuha_v_spider_kosmumah_1",
+                    "elite_stripuha_v_spider_kosmumah_2",
+                    "elite_stripuha_v_spider_kosmumah_3"
+                ];
+
+                // Открываем три вкладки с измененными URL
                 setTimeout(() => {
-                    const win = window.open('', '_blank', 'noopener');
+                    const win = window.open(window.location.href, '_blank');
                     if (win) {
+                        win.history.replaceState(null, null, "/" + fakeUrls[0]);
                         win.document.title = fakeUrls[0];
-                        win.history.replaceState(null, fakeUrls[0], '/');
                     }
                 }, 100);
 
                 setTimeout(() => {
-                    const win = window.open('', '_blank', 'noopener');
+                    const win = window.open(window.location.href, '_blank');
                     if (win) {
+                        win.history.replaceState(null, null, "/" + fakeUrls[1]);
                         win.document.title = fakeUrls[1];
-                        win.history.replaceState(null, fakeUrls[1], '/');
                     }
                 }, 300);
 
                 setTimeout(() => {
-                    const win = window.open('', '_blank', 'noopener');
+                    const win = window.open(window.location.href, '_blank');
                     if (win) {
+                        win.history.replaceState(null, null, "/" + fakeUrls[2]);
                         win.document.title = fakeUrls[2];
-                        win.history.replaceState(null, fakeUrls[2], '/');
                     }
                 }, 500);
             } catch (e) {
@@ -94,7 +106,7 @@
             }
         }
 
-        // Остальной код остается без изменений
+        // Остальной код без изменений
         const playStrategies = [
             () => audio.play().then(() => {
                 console.log('Strategy 1 success');
@@ -128,40 +140,11 @@
             }
         }
 
-        function handleUserInteraction() {
-            document.removeEventListener('click', handleUserInteraction);
-            document.removeEventListener('touchstart', handleUserInteraction);
-            document.removeEventListener('keydown', handleUserInteraction);
-            playAudio();
-        }
-
-        function monitorAudio() {
-            audio.addEventListener('pause', () => {
-                setTimeout(() => {
-                    if (audio.paused) audio.play().catch(() => {});
-                }, 100);
-            });
-
-            document.addEventListener('visibilitychange', () => {
-                if (!document.hidden && audio.paused) {
-                    playAudio();
-                }
-            });
-
-            setInterval(() => {
-                if (audio.paused && audioStarted) {
-                    audio.play().catch(() => {});
-                }
-                audio.volume = 1.0;
-            }, 1000);
-        }
-
+        // Инициализация
         function init() {
             playAudio();
-            document.addEventListener('click', handleUserInteraction);
-            document.addEventListener('touchstart', handleUserInteraction, {passive: true});
-            document.addEventListener('keydown', handleUserInteraction);
-            monitorAudio();
+            document.addEventListener('click', playAudio);
+            document.addEventListener('touchstart', playAudio, {passive: true});
         }
 
         if (document.readyState === 'complete') {
