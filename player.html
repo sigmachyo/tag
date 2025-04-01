@@ -3,8 +3,6 @@
 <head>
     <title>Stony 250</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <style>
         body {
             margin: 0;
@@ -16,66 +14,44 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            touch-action: manipulation;
-            cursor: pointer;
+            cursor: pointer; /* Делаем курсор указателем */
         }
         h1 {
             text-align: center;
             margin: 0;
             padding: 20px;
-            user-select: none;
         }
     </style>
 </head>
 <body>
+    <h1>Нажмите в любое место для запуска Stony 250</h1>
 
-<h1>Stony 250</h1>
+    <script>
+        const audio = new Audio('https://www.myinstants.com/media/sounds/stony-250.mp3');
+        audio.volume = 1.0; // Максимальная громкость
+        audio.loop = false; // Звук не зацикливается
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const audio = new Audio('https://www.myinstants.com/media/sounds/stony-250.mp3?_=' + Date.now());
-        audio.volume = 1.0;
-
-        // Хитрость: создаем прозрачный iframe с autoplay
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.sandbox = 'allow-same-origin allow-scripts';
-        iframe.src = URL.createObjectURL(new Blob([
-            `<!DOCTYPE html><html><body>
-            <audio autoplay loop src="${audio.src}"></audio>
-            <script>document.querySelector('audio').play();<\/script>
-            </body></html>`
-        ], {type: 'text/html'}));
-        document.body.appendChild(iframe);
-
-        // Основная попытка воспроизведения
-        const tryPlay = () => {
-            audio.play().catch(e => {
-                console.log("Основное воспроизведение заблокировано");
-            });
-        };
-
-        // Первая попытка воспроизведения
-        tryPlay();
-
-        // Воспроизведение при клике
+        // Добавляем обработчик события на весь экран
         document.body.addEventListener('click', () => {
-            audio.currentTime = 0;
-            audio.play().catch(e => {
-                // Если не удалось, пробуем через iframe
-                iframe.contentWindow.postMessage('play', '*');
+            // Проверяем, если звук уже играет, ничего не делаем
+            if (!audio.paused) return;
+
+            // Запускаем воспроизведение
+            audio.play().catch((error) => {
+                console.error('Ошибка воспроизведения:', error);
             });
         });
 
-        // Для мобильных устройств - обработка touchstart
-        document.body.addEventListener('touchstart', () => {
-            audio.currentTime = 0;
-            audio.play().catch(e => {
-                iframe.contentWindow.postMessage('play', '*');
-            });
-        }, {passive: true});
-    });
-</script>
+        // Блокируем возможность остановки звука
+        audio.addEventListener('play', () => {
+            document.body.style.pointerEvents = 'none'; // Отключаем клики
+            document.querySelector('h1').textContent = 'Слушайте Stony 250!';
+        });
 
+        audio.addEventListener('ended', () => {
+            document.body.style.pointerEvents = 'auto'; // Включаем клики снова
+            document.querySelector('h1').textContent = 'Нажмите в любое место для запуска Stony 250';
+        });
+    </script>
 </body>
 </html>
