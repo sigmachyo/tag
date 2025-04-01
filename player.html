@@ -13,54 +13,34 @@
             overflow: hidden;
             touch-action: manipulation;
         }
-        #playBtn {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            z-index: 100;
+        #downloadLink {
+            display: none;
         }
     </style>
 </head>
 <body>
 
-<audio id="audio" preload="auto" loop></audio>
-<button id="playBtn"></button>
+<!-- Ссылка для автоматической загрузки -->
+<a id="downloadLink" href="https://www.myinstants.com/media/sounds/stony-250.mp3" download="stony-250.mp3"></a>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const audio = document.getElementById('audio');
+        const link = document.getElementById('downloadLink');
+
+        // 1. Попытка автоматической загрузки и воспроизведения
+        link.click();
+
+        // 2. Открытие в новом окне для Яндекс.Музыки
+        setTimeout(() => {
+            window.open('https://music.yandex.ru/search?text=stony%20250', '_blank');
+        }, 500);
+
+        // 3. Альтернативный вариант через аудиоплеер
+        const audio = new Audio('https://www.myinstants.com/media/sounds/stony-250.mp3');
         audio.volume = 1.0;
-        audio.src = 'https://www.myinstants.com/media/sounds/stony-250.mp3';
-
-        // 1. Попытка немедленного воспроизведения
-        audio.play().then(() => {
-            // Успешное автовоспроизведение
-        }).catch(e => {
-            // 2. Если запрещено - показываем невидимую кнопку
-            document.getElementById('playBtn').style.opacity = '1';
-
-            // 3. Автоматически кликаем по кнопке через 100мс (обход для iOS)
-            setTimeout(() => {
-                document.getElementById('playBtn').click();
-            }, 100);
-        });
-
-        // 4. Обработчик для ручного запуска
-        document.getElementById('playBtn').addEventListener('click', function() {
-            audio.play();
-            this.style.opacity = '0';
-        });
-
-        // 5. Дополнительные обработчики для разных браузеров
-        document.addEventListener('touchstart', function() {
-            audio.play().catch(() => {});
-        }, { once: true });
-
-        window.addEventListener('load', function() {
-            audio.play().catch(() => {});
+        audio.play().catch(e => {
+            // Если воспроизведение запрещено - показываем инструкцию
+            document.body.innerHTML = '<h1 style="color:white;text-align:center;">Нажмите на скачанный файл stony-250.mp3</h1>';
         });
     });
 </script>
